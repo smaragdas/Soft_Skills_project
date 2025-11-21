@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "answerId": "t1",
+    "category": "teamwork",
+    "modalities": [
+      "text"
+    ]
+  },
+  "text": {
+    "clarity": 7.0,
+    "coherence": 6.8,
+    "topic_relevance": 7.1,
+    "vocabulary_range": 6.2
+  },
+  "audio": null
+}

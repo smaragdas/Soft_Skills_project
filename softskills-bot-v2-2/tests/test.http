@@ -1,0 +1,32 @@
+### Health
+GET http://127.0.0.1:8000/health
+
+### Score Open
+POST http://127.0.0.1:8000/score-open?save=true&user_id=tester
+Content-Type: application/json
+
+{
+  "category": "Communication",
+  "question_id": "comm_open1",
+  "text": "Κατανοώ την ανησυχία σας για την καθυστέρηση. Θα προσαρμόσω την ενημέρωση χωρίς τεχνικό λεξιλόγιο και θα δώσω σαφή επόμενα βήματα: (1) έλεγχος σήμερα, (2) ενημέρωση αύριο, (3) σύνοψη στο τέλος."
+}
+
+### Score MC
+POST http://127.0.0.1:8000/score-mc?save=true&user_id=tester
+Content-Type: application/json
+
+{
+  "category": "Communication",
+  "question_id": "comm_mc1",
+  "choices": ["B","C"]
+}
+
+### Export XLSX
+GET http://127.0.0.1:8000/export/human-xlsx?sample=1&qtype=open
+
+### Import Human CSV (set proper file path in client)
+# POST http://127.0.0.1:8000/import/human-csv
+# (multipart form-data: rater_id=r1, file=@human_ratings_template.csv)
+
+### Metrics
+GET http://127.0.0.1:8000/metrics/reliability?category=Communication&qtype=open

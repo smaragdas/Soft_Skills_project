@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "answerId": "l1",
+    "category": "leadership",
+    "modalities": [
+      "mcq",
+      "text"
+    ]
+  },
+  "text": {
+    "clarity": 6.9,
+    "coherence": 6.4,
+    "topic_relevance": 7.2,
+    "vocabulary_range": 6.0
+  },
+  "audio": null
+}

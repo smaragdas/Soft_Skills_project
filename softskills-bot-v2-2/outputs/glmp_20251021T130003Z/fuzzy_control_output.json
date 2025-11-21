@@ -1,0 +1,59 @@
+{
+  "skill": "problem_solving",
+  "score": 8.14,
+  "label": "High",
+  "dimensions": {
+    "Knowledge_Decision": {
+      "score": 8.18,
+      "label": "High"
+    },
+    "Content_Structure": {
+      "score": 8.18,
+      "label": "High"
+    },
+    "Delivery_Presence": {
+      "score": 7.4,
+      "label": "High"
+    }
+  },
+  "attributes": {
+    "Linguistic_Clarity": {
+      "score": 8.18,
+      "label": "High"
+    },
+    "Topical_Adequacy": {
+      "score": 8.18,
+      "label": "High"
+    },
+    "Vocal_Control": {
+      "score": 6.63,
+      "label": "Medium"
+    },
+    "Fluency": {
+      "score": 8.18,
+      "label": "High"
+    },
+    "Decision_Quality": {
+      "score": 8.18,
+      "label": "High"
+    }
+  },
+  "all_categories": {
+    "communication": {
+      "score": 7.95,
+      "label": "High"
+    },
+    "leadership": {
+      "score": 8.06,
+      "label": "High"
+    },
+    "teamwork": {
+      "score": 8.02,
+      "label": "High"
+    },
+    "problem_solving": {
+      "score": 8.14,
+      "label": "High"
+    }
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "memberships": {
+    "default": {
+      "low": [
+        0,
+        0,
+        2.5,
+        4.5
+      ],
+      "med": [
+        3.5,
+        5,
+        6.5
+      ],
+      "high": [
+        5.5,
+        7.5,
+        10,
+        10
+      ]
+    }
+  },
+  "rules": [
+    {
+      "if": [
+        {
+          "var": "clarity",
+          "is": "high"
+        },
+        {
+          "var": "coherence",
+          "is": "med"
+        }
+      ],
+      "then": {
+        "var": "Linguistic_Clarity",
+        "is": "high"
+      }
+    },
+    {
+      "if": [
+        {
+          "var": "topic_relevance",
+          "is": "low"
+        }
+      ],
+      "then": {
+        "var": "Topical_Adequacy",
+        "is": "low"
+      }
+    },
+    {
+      "if": [
+        {
+          "var": "pitch_stability",
+          "is": "high"
+        },
+        {
+          "var": "energy_stability",
+          "is": "high"
+        }
+      ],
+      "then": {
+        "var": "Vocal_Control",
+        "is": "high"
+      }
+    },
+    {
+      "if": [
+        {
+          "var": "speech_rate",
+          "is": "high"
+        },
+        {
+          "var": "pause_ratio",
+          "is": "low"
+        }
+      ],
+      "then": {
+        "var": "Fluency",
+        "is": "high"
+      }
+    }
+  ],
+  "weights": {
+    "Communication_Effectiveness": {
+      "Linguistic_Clarity": 0.6,
+      "Topical_Adequacy": 0.4
+    },
+    "Delivery_And_Presence": {
+      "Vocal_Control": 0.5,
+      "Fluency": 0.5
+    },
+    "Communication": {
+      "Communication_Effectiveness": 0.6,
+      "Delivery_And_Presence": 0.4
+    },
+    "communication": {
+      "Knowledge_Decision": 0.2,
+      "Content_Structure": 0.5,
+      "Delivery_Presence": 0.3
+    }
+  },
+  "label_thresholds": {
+    "low": [
+      0,
+      4
+    ],
+    "med": [
+      4,
+      7
+    ],
+    "high": [
+      7,
+      10
+    ]
+  }
+}

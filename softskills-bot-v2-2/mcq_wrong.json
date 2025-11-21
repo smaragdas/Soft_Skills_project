@@ -1,0 +1,5 @@
+﻿{
+  "category": "communication",
+  "meta": { "category": "communication", "answerId": "comm_mc1", "modalities": ["mcq"] },
+  "mcq": { "selected_id": "0", "correct_id": "2" }
+}

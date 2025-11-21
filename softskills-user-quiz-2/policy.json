@@ -1,0 +1,1 @@
+{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Sid":"AllowPublicReadForWebsite","Principal":"*","Resource":"arn:aws:s3:::softskills-quiz-ihu/*","Action":"s3:GetObject"}]}

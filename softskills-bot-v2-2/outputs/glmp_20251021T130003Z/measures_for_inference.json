@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "answerId": "a4",
+    "category": "problem_solving",
+    "modalities": [
+      "mcq",
+      "text",
+      "audio"
+    ]
+  },
+  "text": {
+    "clarity": 6.5,
+    "coherence": 6.2,
+    "topic_relevance": 6.9,
+    "vocabulary_range": 6.1
+  },
+  "audio": {
+    "speech_rate": 6.9,
+    "pause_ratio": 4.1,
+    "pitch_stability": 6.0,
+    "energy_stability": 5.8,
+    "fluency": 6.6
+  }
+}

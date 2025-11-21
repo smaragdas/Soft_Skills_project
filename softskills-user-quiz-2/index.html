@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Soft Skills Quiz</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="logo">
+        <div class="dot"></div>
+        <span>Soft Skills Quiz</span>
+      </div>
+      <div id="status" class="status" data-type="ok">Έτοιμο. Διάλεξε κατηγορία και πάτα Έναρξη.</div>
+    </header>
+
+    <main class="layout">
+  <!-- Αριστερά: ΡΥΘΜΙΣΕΙΣ -->
+  <aside id="settingsPanel" class="panel glass animatable">
+    <h2 class="panel-title">Ρυθμίσεις</h2>
+
+    <div class="row">
+      <label for="category">Κατηγορία</label>
+      <select id="category">
+        <option>Leadership</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="userId">User ID</label>
+      <input id="userId" type="text" readonly />
+      <small class="hint">Δημιουργείται αυτόματα και είναι read-only.</small>
+    </div>
+
+    <div class="row dev-row">
+      <label for="apiBase">FastAPI Base URL</label>
+      <input id="apiBase" type="text" placeholder="https://your-backend" />
+      <small class="hint">Κρύβεται αυτόματα για τους χρήστες.</small>
+    </div>
+
+    <div id="coachAvatar" class="coach-avatar">
+  <div class="coach-avatar__bubble coach-avatar__bubble--breathing">
+    <img
+      src="/coach_happy.png"
+      alt="Soft Skills Coach"
+      class="coach-avatar__image"
+    />
+  </div>
+  <div class="coach-avatar__caption">
+    Μπράβο, τα πας πολύ καλά! 💪
+  </div>
+</div>
+  </aside>
+
+  <!-- Δεξιά: INTRO (με τα κουμπιά) -->
+  <section id="introPanel" class="panel glass intro-panel">
+    <span id="phaseBadge" class="phase-badge">Αρχικό τεστ (PRE)</span>
+    <h1 class="intro-title">Καλώς ήρθες στο Soft Skills Quiz 👋</h1>
+<p class="intro-lead">
+  Είμαι ο Soft Skills Coach σου 🤖 – εδώ για να σε βοηθήσω να δεις
+  πού είσαι δυνατός και πού μπορείς να εξελιχθείς.
+  Με μερικές ερωτήσεις θα χτίσουμε μαζί το προσωπικό σου πλάνο βελτίωσης.
+</p>
+
+    <div class="buttons">
+      <button id="btnSave" class="btn ghost">Αποθήκευση</button>
+      <button id="btnStart" class="btn primary">Έναρξη</button>
+    </div>
+  </section>
+
+<div id="instructionsPanel" class="panel sub instructions-panel ">
+  <div class="instructions-header">
+    <div class="instructions-chip">
+      <span class="instructions-dot"></span>
+      Οδηγίες Χρήσης
+    </div>
+  </div>
+
+  <p class="instructions-intro">
+    Το Soft Skills Quiz έχει σκοπό να αξιολογήσει βασικές δεξιότητες όπως
+    <b>Ηγεσία, Επικοινωνία, Ομαδικότητα</b> και <b>Επίλυση Προβλημάτων.</b>
+  </p>
+
+  <ul class="instructions-list">
+    <li>Διάλεξε κατηγορία και πάτα <b>Έναρξη</b> για να ξεκινήσεις.</li>
+    <li>Κάθε κατηγορία περιλαμβάνει <b>πολλαπλής επιλογής</b> και <b>ανοιχτές ερωτήσεις.</b></li>
+    <li>Στο τέλος θα λάβεις μια ολοκληρωμένη εικόνα των δεξιοτήτων σου και συγκεκριμένα βήματα για να εξελιχθείς.</li>
+    <li>Μετά από κάθε ερώτηση πάτα <b>Βαθμολόγηση</b> για να δείς το βαθμό σου και το κατάλληλο feedback</li>
+    <li>Μαζί με τα αποτελέσματα θα σου δώθει και εκπαιδευτικό υλικό σε PDF, έτοιμο για μελέτη.</li> 
+  </ul>   
+   <p class="instructions-note">
+  Στις ανοιχτές ερωτήσεις δώσε λίγο χρόνο στο σύστημα να σε βαθμολογήσει.
+  Σκέψου ότι είναι σαν κανονικός coach και χρειάζεται και αυτός τον χρόνο του!
+</p>
+</div>
+
+  <!-- Δεξιά: QUIZ (στην ίδια στήλη με το intro, εναλλάσσονται) -->
+  <section id="quizBox" class="panel glass hidden">
+    <div class="topline">
+      <div class="progress">
+        <div class="bar-wrap"><div id="bar" class="bar" style="width:0%"></div></div>
+        <div class="step"><span id="stepText">1 / 16</span></div>
+      </div>
+      <div class="meta">
+        <span id="kindBadge" class="badge">OPEN</span>
+        <span id="levelBadge" class="badge level">LEVEL: —</span>
+        <span class="timer">⏱ <span id="timer">01:30</span></span>
+      </div>
+    </div>
+
+    <article class="question">
+      <div class="qid">ID: <span id="qId">—</span></div>
+      <h3 id="qText">—</h3>
+
+      <div id="mcArea" class="hidden">
+        <div id="mcOptions" class="mc-grid"></div>
+      </div>
+
+      <textarea id="answer" class="hidden" rows="6" placeholder="Γράψε την απάντησή σου εδώ..."></textarea>
+    </article>
+
+    <div class="actions">
+      <button id="btnPrev" class="btn ghost" disabled>Πίσω</button>
+      <button id="btnScore" class="btn accent">Βαθμολόγηση</button>
+      <button id="btnNext" class="btn primary">Επόμενο</button>
+      <span id="busy" class="busy"></span>
+    </div>
+
+  <section id="result" class="panel sub glass hidden result-wrap">
+  <div class="result-header">
+    <div class="kpi">
+      <div class="kpi-circle"><span id="score">—</span></div>
+      <div class="kpi-label">Score</div>
+    </div>
+    <div class="chip-row">
+      <span class="chip">Answer ID: <b id="answerId">—</b></span>
+    </div>
+  </div>
+
+  <div class="result-grid">
+    <div class="result-card keep">
+      <div class="rc-title">Τι να κρατήσεις</div>
+      <p id="keep" class="mono">—</p>
+    </div>
+    <div class="result-card change">
+      <div class="rc-title">Τι να αλλάξεις</div>
+      <p id="change" class="mono">—</p>
+    </div>
+    <div class="result-card action">
+      <div class="rc-title">Επόμενη ενέργεια</div>
+      <p id="action" class="mono">—</p>
+    </div>
+    <div class="result-card drill">
+      <div class="rc-title">Άσκηση/Drill</div>
+      <p id="drill" class="mono">—</p>
+    </div>
+  </div>
+</section>
+
+  </section>
+</main>
+
+
+    <!-- Το modal δημιουργείται από το script (ids: #thanksBackdrop, .modal, .actions) -->
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

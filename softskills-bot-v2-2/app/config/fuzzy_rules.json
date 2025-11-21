@@ -1,0 +1,9 @@
+{
+  "weights": {
+    "mcq": 0.5,
+    "text": 0.3,
+    "audio": 0.2
+  },
+  "rules": [],
+  "mode": "avg"
+}
