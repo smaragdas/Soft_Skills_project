@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from mangum import Mangum
+
 
 # --- Settings / DB ---
 from sqlalchemy import text
@@ -232,7 +232,4 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 def on_startup():
     init_db()
 
-# -----------------------------------------------------------------------------
-# Lambda handler
-# -----------------------------------------------------------------------------
-handler = Mangum(app)
+
