@@ -1,20 +1,20 @@
-FROM public.ecr.aws/lambda/python:3.11
+FROM python:3.11-slim
 
-# Εγκαθιστούμε pip και dependencies
-RUN pip install --upgrade pip
+# Set workdir
+WORKDIR /app
 
-# Αντιγραφή requirements και εγκατάσταση
-COPY requirements.txt ./
+# Install system dependencies
+RUN apt-get update && apt-get install -y build-essential
+
+# Install pip dependencies
+COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Αντιγραφή υπόλοιπου κώδικα
-COPY . ./
+# Copy project
+COPY . /app
 
-#  build tag για να το βλέπουμε στο "/" response
-ARG BUILD_TAG=local-dev
-ENV BUILD_TAG=${BUILD_TAG}
+# Expose port for Render
+EXPOSE 8080
 
-ENV PYTHONPATH="/var/task"
-
-# Entry point: η Mangum μετατρέπει το FastAPI app σε handler για Lambda
-CMD ["app.main.handler"]
+# Start server
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

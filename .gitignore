@@ -1,0 +1,76 @@
+########################
+# OS / Editor files
+########################
+.DS_Store
+Thumbs.db
+*.log
+
+# VSCode
+.vscode/
+# JetBrains (PyCharm, WebStorm, IntelliJ)
+.idea/
+
+########################
+# Python
+########################
+# Virtual environments
+venv/
+.env/
+.venv/
+env/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Local settings
+*.sqlite3
+
+########################
+# Node / React / TypeScript
+########################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output (React/Vite/CRA)
+build/
+dist/
+
+########################
+# Env / Secrets
+########################
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Αν χρησιμοποιείς docker compose env
+docker.env
+
+########################
+# Misc
+########################
+# Coverage / test outputs
+coverage/
+.coverage
+htmlcov/
+
+# Logs
+logs/
+*.log
+
+# MacOS
+.AppleDouble
+.LSOverride
+Icon?
