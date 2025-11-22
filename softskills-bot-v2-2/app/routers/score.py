@@ -61,46 +61,46 @@ def _norm_cat(cat: str) -> str:
     return c or "Leadership"
 
 
-# def _calibrate_category_score(score_0_10: float, category: str) -> float:
-#     try:
-#         s = max(0.0, min(10.0, float(score_0_10)))
-#     except Exception:
-#         s = 0.0
-#     gamma = _GAMMA_BY_CATEGORY.get(_norm_cat(category), 1.15)
-#     return round(((s / 10.0) ** gamma) * 10.0, 2)
+def _calibrate_category_score(score_0_10: float, category: str) -> float:
+    try:
+        s = max(0.0, min(10.0, float(score_0_10)))
+    except Exception:
+        s = 0.0
+    gamma = _GAMMA_BY_CATEGORY.get(_norm_cat(category), 1.15)
+    return round(((s / 10.0) ** gamma) * 10.0, 2)
 
 
-# def _weighted_from_criteria(criteria: list, category: str) -> float | None:
-#     """Compute weighted score 0..10 from criteria list like [{'name': 'Clarity','score': 7},...]"""
-#     if not isinstance(criteria, list) or not criteria:
-#         return None
-#     weights = _WEIGHTS_BY_CATEGORY.get(_norm_cat(category), _WEIGHTS_BY_CATEGORY["Leadership"])
-#     acc = 0.0
-#     den = 0.0
-#     for c in criteria:
-#         try:
-#             name = str(c.get("name", "")).strip().lower()
-#             score = float(c.get("score", 0))
-#         except Exception:
-#             continue
-#         key = None
-#         if "clarity" in name:
-#             key = "clarity"
-#         elif "relevance" in name or "σχετικ" in name:
-#             key = "relevance"
-#         elif "empathy" in name or "ενσυνα" in name:
-#             key = "empathy"
-#         elif "action" in name or "πρακτικ" in name:
-#             key = "actionability"
-#         elif "specific" in name or "παράδειγ" in name or "τεκμηρ" in name:
-#             key = "specificity"
-#         if key and key in weights:
-#             w = float(weights[key])
-#             acc += max(0.0, min(10.0, score)) * w
-#             den += w
-#     if den <= 0:
-#         return None
-#     return acc / den
+def _weighted_from_criteria(criteria: list, category: str) -> float | None:
+    """Compute weighted score 0..10 from criteria list like [{'name': 'Clarity','score': 7},...]"""
+    if not isinstance(criteria, list) or not criteria:
+        return None
+    weights = _WEIGHTS_BY_CATEGORY.get(_norm_cat(category), _WEIGHTS_BY_CATEGORY["Leadership"])
+    acc = 0.0
+    den = 0.0
+    for c in criteria:
+        try:
+            name = str(c.get("name", "")).strip().lower()
+            score = float(c.get("score", 0))
+        except Exception:
+            continue
+        key = None
+        if "clarity" in name:
+            key = "clarity"
+        elif "relevance" in name or "σχετικ" in name:
+            key = "relevance"
+        elif "empathy" in name or "ενσυνα" in name:
+            key = "empathy"
+        elif "action" in name or "πρακτικ" in name:
+            key = "actionability"
+        elif "specific" in name or "παράδειγ" in name or "τεκμηρ" in name:
+            key = "specificity"
+        if key and key in weights:
+            w = float(weights[key])
+            acc += max(0.0, min(10.0, score)) * w
+            den += w
+    if den <= 0:
+        return None
+    return acc / den
 
 
 # ---------------------------------------------------------------------------
