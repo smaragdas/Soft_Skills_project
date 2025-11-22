@@ -752,6 +752,127 @@ async def score_open(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"score-open error: {e}\n{traceback.format_exc()}")
 
+@router.post("/score-open-from-glmp", response_model=ScoreOpenResponse)
+async def score_open_from_glmp(
+    payload: ScoreOpenFromGlmpRequest,
+    session: Session = Depends(get_session),
+    save: bool = Query(True),
+    attempt: int | None = Query(None),
+    token: str | None = Query(None),
+    x_study_token: str | None = Header(None, alias="X-Study-Token"),
+) -> ScoreOpenResponse:
+    """
+    ΔΕΝ ξανακάνει LLM, ΔΕΝ κάνει calibration.
+    Απλώς παίρνει το score από το GLMP (0–10) και το γράφει στα interaction/autorating/answers.
+    """
+    try:
+        # ✅ resolve participant/attempt όπως και στο score_open
+        participant_id, attempt_no = _get_participant_and_attempt(
+            payload.user_id, token, x_study_token, attempt
+        )
+
+        final_score = float(payload.score)
+        if final_score < 0.0:
+            final_score = 0.0
+        if final_score > 10.0:
+            final_score = 10.0
+
+        interaction_id = None
+        answer_id = None
+
+        if save:
+            created_at = _utc_now_str()
+            answer_id = str(uuid.uuid4())
+
+            # interaction
+            _dynamic_insert(
+                session,
+                "interaction",
+                {
+                    "answer_id": answer_id,
+                    "category": payload.category,
+                    "qtype": "open",
+                    "question_id": payload.question_id,
+                    "text": payload.text,
+                    "text_raw": payload.text,
+                    "answer_text": payload.text,
+                    "user_id": participant_id,
+                    "participant_id": participant_id,
+                    "attempt_no": attempt_no,
+                    "created_at": created_at,
+                },
+            )
+
+            # απλό feedback/coaching placeholder (δεν είναι τόσο κρίσιμο, το βασικό είναι το score)
+            coaching = {
+                "keep": "Συνέχισε με τον ίδιο τρόπο απάντησης.",
+                "change": "Δώσε λίγη παραπάνω σαφήνεια και παραδείγματα όπου γίνεται.",
+                "action": "Εφάρμοσε την ανατροφοδότηση του πλάνου μελέτης στις επόμενες απαντήσεις.",
+                "drill": "Δοκίμασε να γράψεις ξανά την απάντηση με λίγο πιο δομημένο τρόπο.",
+            }
+
+            _dynamic_insert(
+                session,
+                "autorating",
+                {
+                    "answer_id": answer_id,
+                    "score": final_score,
+                    "confidence": 0.8,
+                    "model_name": "glmp-open",
+                    "feedback": {"kind": "glmp", "summary": "Βαθμολογία από GLMP quiz."},
+                    "coaching": coaching,
+                    "attempt_no": attempt_no,
+                    "created_at": created_at,
+                },
+            )
+
+            # answers + llm_scores (0..10 -> 0..1)
+            _upsert_answers_and_llm(
+                session,
+                answer_id=answer_id,
+                user_id=participant_id or "",
+                question_id=payload.question_id,
+                category=payload.category,
+                qtype="open",
+                prompt=None,
+                answer=payload.text,
+                llm_score_0_1=(final_score / 10.0),
+            )
+
+            session.execute(
+                text(
+                    """
+                 UPDATE answers
+                    SET participant_id = :pid,
+                        attempt = :att
+                  WHERE answer_id = :aid
+                """
+                ),
+                {"pid": participant_id, "att": attempt_no, "aid": answer_id},
+            )
+            session.commit()
+
+        return ScoreOpenResponse(
+            text=payload.text,
+            category=payload.category,
+            question_id=payload.question_id,
+            score=final_score,
+            feedback={"summary": "Σκορ καταχωρήθηκε από GLMP.", "kind": "glmp"},
+            model="glmp-open",
+            answer_id=answer_id,
+            interaction_id=interaction_id,
+            criteria=None,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"score-open-from-glmp error: {e}\n{traceback.format_exc()}",
+        )
+
+
 
 @router.post("/score-mc", response_model=ScoreMCResponse)
 def score_mc(
