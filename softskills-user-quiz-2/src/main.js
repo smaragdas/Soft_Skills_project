@@ -823,18 +823,24 @@ $('#btnScore')?.addEventListener('click', async (e) => {
       const acc = (correct_id != null) ? (String(selected_id) === correct_id ? 1 : 0) : 0;
 
       const base = ensurePrefix(API_BASE);
-      const url = joinUrl(base, '/glmp/evaluate-and-save');
-      const payload = {
-        meta: { userId: user_id, answerId: q.id, category, modalities: ['mcq'] },
-        mcq: { accuracy: acc },
-      };
+      const url = joinUrl(base, '/score-mc?save=true&force_llm=false');
+       const payload = {
+         user_id: user_id,
+         category: category,          // ή categoryLabel, δουλεύει και έτσι
+         question_id: q.id,
+         question_text: q.text,
+         options: q.options || [],
+         selected_id,
+         correct_id,
+        };
       console.warn("DEBUG MC PAYLOAD", payload);
       console.log('[MC] GLMP payload →', payload, 'POST', url);
       out = await fetchJSON(url, { method: 'POST', body: JSON.stringify(payload) });
       console.log('[MC] GLMP response ←', out);
 
       q.selected_id = selected_id;
-      if (out && typeof out.id !== 'undefined') q.answerId = out.id;
+      if (out && typeof out.id !== 'undefined'){
+      q.answerId = out.id;}
     }
 
     // === UI ενημέρωση ===
