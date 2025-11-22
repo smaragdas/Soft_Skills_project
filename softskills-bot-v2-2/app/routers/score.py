@@ -579,7 +579,7 @@ async def score_open(
             }
             llm_criteria = out.get("criteria") or h_criteria
 
-            blended = round(0.7 * llm_score + 0.3 * h_score)
+            blended = round(0.7 * llm_score )
             weighted_or_blended = _weighted_from_criteria(llm_criteria, request.category) or blended
             final_score = _calibrate_category_score(weighted_or_blended, request.category)
 
