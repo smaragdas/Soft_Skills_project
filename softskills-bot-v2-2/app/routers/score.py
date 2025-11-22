@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, HTTPException, Request, Header
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, Dict, Any, List, Tuple
+from app.core.llm import llm_coach_mc
 from sqlmodel import Session
 from sqlalchemy import text
 from uuid import uuid4
@@ -744,7 +745,6 @@ async def score_open(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"score-open error: {e}\n{traceback.format_exc()}")
 
-
 @router.post("/score-mc", response_model=ScoreMCResponse)
 def score_mc(
     payload: MCPayload,
@@ -753,9 +753,14 @@ def score_mc(
     session: Session = Depends(get_session),
 ):
     try:
-        options_map = {o["id"]: o["text"] for o in (payload.options or []) if "id" in o and "text" in o}
+        # ---------------- OPTIONS MAP ----------------
+        options_map = {
+            o["id"]: o["text"]
+            for o in (payload.options or [])
+            if "id" in o and "text" in o
+        }
 
-        # --- resolve correct_id (δέχεται είτε correct_id είτε correct μέσα στα options)
+        # ---------------- correct_id RESOLUTION ----------------
         correct_id = (payload.correct_id or "").strip()
         if not correct_id:
             truthy = {"true", "1", "yes", "y"}
@@ -767,11 +772,16 @@ def score_mc(
                         correct_id = cid
                         break
 
-        # Heuristic
+        # ---------------- HEURISTIC ----------------
         correct, h_score, h_feedback, h_coaching = heuristic_mc_score_and_feedback(
-            payload.selected_id, correct_id, payload.question_text, options_map, payload.category
+            payload.selected_id,
+            correct_id,
+            payload.question_text,
+            options_map,
+            payload.category,
         )
 
+        # default values (heuristic)
         source = "heuristic"
         model_name = "heuristic-v2"
         feedback_final: Any = h_feedback
@@ -779,6 +789,10 @@ def score_mc(
         criteria_out: Optional[List[Dict[str, Any]]] = None
         llm_used = False
 
+        # τελικό score που θα γράψουμε / επιστρέψουμε (0..10)
+        final_score: float = float(h_score)
+
+        # ---------------- LLM CALL (OPTIONAL) ----------------
         if force_llm and _HAVE_LLM and getattr(settings, "OPENAI_API_KEY", None):
             try:
                 out = llm_coach_mc(
@@ -789,48 +803,78 @@ def score_mc(
                     selected_id=payload.selected_id,
                     correct_id=correct_id,
                 ) or {}
-                llm_score = float(out.get("score", h_score))
-                h_score = llm_score
-                coaching_final = {
-                    "keep": out.get("keep") or coaching_final.get("keep"),
-                    "change": out.get("change") or coaching_final.get("change"),
-                    "action": out.get("action") or coaching_final.get("action"),
-                    "drill": out.get("drill") or coaching_final.get("drill"),
-                }
-                criteria_out = out.get("criteria") or criteria_out
-                model_name = out.get("model_name", getattr(settings, "OPENAI_MODEL", None) or "llm-coach")
-                source = "llm"
-                llm_used = True
+
+                if isinstance(out, dict) and "error" not in out:
+                    # LLM δίνει score σε κλίμακα 0..10 → αυτό θέλουμε
+                    llm_score = out.get("score", final_score)
+                    try:
+                        final_score = float(llm_score)
+                    except Exception:
+                        final_score = float(h_score)
+
+                    # συνένωση coaching (LLM + heuristic fallback)
+                    coaching_final = {
+                        "keep":   out.get("keep")   or (coaching_final or {}).get("keep"),
+                        "change": out.get("change") or (coaching_final or {}).get("change"),
+                        "action": out.get("action") or (coaching_final or {}).get("action"),
+                        "drill":  out.get("drill")  or (coaching_final or {}).get("drill"),
+                    }
+
+                    criteria_out = out.get("criteria") or criteria_out
+                    model_name = out.get(
+                        "model_name",
+                        getattr(settings, "OPENAI_MODEL", None) or "llm-coach",
+                    )
+                    source = "llm"
+                    llm_used = True
+                else:
+                    # LLM επέστρεψε error → fallback σε heuristic
+                    feedback_final = f"{h_feedback} (LLM fallback: {out.get('error')})"
             except Exception as e:
                 feedback_final = f"{h_feedback} (LLM fallback: {e})"
 
-        # --- CHANGED: Hard MC rule (σωστό=5.0, λάθος=0.0) και ΔΕΝ καλούμε calibrate για MC
-        if correct is True:
-            h_score = 5.0
-            feedback_final = {"summary": "Σωστή επιλογή."} if isinstance(feedback_final, str) else (feedback_final or {"summary": "Σωστή επιλογή."})
-            coaching_final = coaching_final or {
-                "keep": "Συνέχισε να ελέγχεις τα κριτήρια πριν απαντήσεις.",
-                "change": "Πρόσθεσε 1 πρόταση ‘γιατί’ για πληρότητα.",
-                "action": "Εφάρμοσε τον ίδιο έλεγχο κριτηρίων σε επόμενες ερωτήσεις.",
-                "drill": "Άσκηση: γράψε 2 κριτήρια για παρόμοιο σενάριο."
-            }
-        elif correct is False:
-            h_score = 0.0
-            feedback_final = {"summary": "Λανθασμένη επιλογή."} if isinstance(feedback_final, str) else (feedback_final or {"summary": "Λανθασμένη επιλογή."})
-            coaching_final = coaching_final or {
-                "keep": "Κράτα την προσπάθεια για γρήγορη απόφαση.",
-                "change": "Έλεγξε τα βασικά κριτήρια πριν επιλέξεις.",
-                "action": "Σύγκρινε την απάντησή σου με τη σωστή και σημείωσε τη διαφορά.",
-                "drill": "Άσκηση: εντόπισε 2 κριτήρια που οδηγούν στη σωστή επιλογή."
-            }
+        # ---------------- FALLBACK RULE (ΑΝ ΔΕΝ ΕΧΕΙ LLM) ----------------
+        if not llm_used:
+            # Θέλουμε απλή κλίμακα: σωστό → 10, λάθος → 0 (όπως glmp)
+            if correct is True:
+                final_score = 10.0
+                if isinstance(feedback_final, str):
+                    feedback_final = {"summary": "Σωστή επιλογή."}
+                else:
+                    feedback_final = feedback_final or {"summary": "Σωστή επιλογή."}
 
-        # --- CHANGED: χρησιμοποιούμε απευθείας το h_score ως auto_score για MC (0..5)
-        score_cal = h_score
+                coaching_final = coaching_final or {
+                    "keep": "Συνέχισε να ελέγχεις τα κριτήρια πριν απαντήσεις.",
+                    "change": "Πρόσθεσε 1 πρόταση ‘γιατί’ για πληρότητα.",
+                    "action": "Εφάρμοσε τον ίδιο έλεγχο κριτηρίων σε επόμενες ερωτήσεις.",
+                    "drill": "Άσκηση: γράψε 2 κριτήρια για παρόμοιο σενάριο.",
+                }
+            elif correct is False:
+                final_score = 0.0
+                if isinstance(feedback_final, str):
+                    feedback_final = {"summary": "Λανθασμένη επιλογή."}
+                else:
+                    feedback_final = feedback_final or {"summary": "Λανθασμένη επιλογή."}
 
-        # ✅ Resolve participant & attempt (για MC παίρνουμε από payload.user_id)
-        participant_id, attempt_no = _get_participant_and_attempt(payload.user_id, None, None, None)
+                coaching_final = coaching_final or {
+                    "keep": "Κράτα την προσπάθεια για γρήγορη απόφαση.",
+                    "change": "Έλεγξε τα βασικά κριτήρια πριν επιλέξεις.",
+                    "action": "Σύγκρινε την απάντησή σου με τη σωστή και σημείωσε τη διαφορά.",
+                    "drill": "Άσκηση: εντόπισε 2 κριτήρια που οδηγούν στη σωστή επιλογή.",
+                }
 
-        interaction_id = answer_id = None
+        # τελικό auto_score που γράφουμε/επιστρέφουμε
+        score_cal = float(final_score)
+
+        # ---------------- RESOLVE PARTICIPANT / ATTEMPT ----------------
+        participant_id, attempt_no = _get_participant_and_attempt(
+            payload.user_id, None, None, None
+        )
+
+        interaction_id = None
+        answer_id = None
+
+        # ---------------- SAVE TO DB ----------------
         if save:
             created_at = _utc_now_str()
             answer_id = str(uuid.uuid4())
@@ -856,7 +900,7 @@ def score_mc(
                 },
             )
 
-            # --- CHANGED: ensure JSON objects for JSONB fields
+            # JSONB πεδία: βεβαιώσου ότι είναι dict
             if isinstance(feedback_final, str):
                 feedback_final = {"summary": feedback_final}
             if isinstance(coaching_final, str):
@@ -886,18 +930,18 @@ def score_mc(
                 qtype="mc",
                 prompt=payload.question_text,
                 answer=selected_text or payload.selected_id,
+                # 0..10 → 0..1
                 llm_score_0_1=(float(score_cal) / 10.0),
             )
 
-            # όπως και στο open: ενημέρωση extra fields (αν υπάρχουν)
             session.execute(
                 text(
                     """
-                 UPDATE answers
-                    SET participant_id = :pid,
-                        attempt = :att
-                  WHERE answer_id = :aid
-            """
+                    UPDATE answers
+                       SET participant_id = :pid,
+                           attempt = :att
+                     WHERE answer_id = :aid
+                    """
                 ),
                 {"pid": participant_id, "att": attempt_no, "aid": answer_id},
             )
@@ -921,8 +965,10 @@ def score_mc(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"score-mc error: {e}\n{traceback.format_exc()}")
-
+        raise HTTPException(
+            status_code=500,
+            detail=f"score-mc error: {e}\n{traceback.format_exc()}",
+        )
 
 # ============================== LEGACY ALIASES ==============================
 legacy_router = APIRouter(tags=["score-legacy"])
