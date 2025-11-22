@@ -777,38 +777,79 @@ $('#btnScore')?.addEventListener('click', async (e) => {
     let out = null;
 
     // === OPEN TYPE ===
-    if (q.type === 'open') {
-      const text = ($('#answer')?.value || '').trim();
-      if (text.length < DEFAULTS.openMinLen) {
-        alert(`Γράψε τουλάχιστον ${DEFAULTS.openMinLen} χαρακτήρες.`);
-        $('#answer')?.focus();
-        return;
-      }
+ // === OPEN TYPE ===
+if (q.type === 'open') {
+  const text = ($('#answer')?.value || '').trim();
+  if (text.length < DEFAULTS.openMinLen) {
+    alert(`Γράψε τουλάχιστον ${DEFAULTS.openMinLen} χαρακτήρες.`);
+    $('#answer')?.focus();
+    return;
+  }
 
-      // 1) LLM text scoring → measures
-      const sres = await scoreOpen(API_BASE, categoryLabel, q.id, text, user_id);
-      const t = sres?.measures || sres || {};
-      const textMeasures = {
-        clarity: toNum(t.clarity),
-        coherence: toNum(t.coherence),
-        topic_relevance: toNum(t.topic_relevance),
-        vocabulary_range: toNum(t.vocabulary_range),
-      };
+  // 1) LLM text scoring → measures (όπως έχεις ήδη αν το χρειάζεσαι)
+  const sres = await scoreOpen(API_BASE, categoryLabel, q.id, text, user_id);
+  const t = sres?.measures || sres || {};
+  const textMeasures = {
+    clarity: toNum(t.clarity),
+    coherence: toNum(t.coherence),
+    topic_relevance: toNum(t.topic_relevance),
+    vocabulary_range: toNum(t.vocabulary_range),
+  };
 
-      // 2) GLMP με text
-      const base = ensurePrefix(API_BASE);
-      const url = joinUrl(base, '/glmp/evaluate-and-save');
-      const payload = {
-        meta: { userId: user_id, answerId: q.id, category, modalities: ['text'] },
-        text: { ...textMeasures, raw: text },
-      };
-      console.log('[OPEN] GLMP payload →', payload, 'POST', url);
-      out = await fetchJSON(url, { method: 'POST', body: JSON.stringify(payload) });
-      console.log('[OPEN] GLMP response ←', out);
+  // 2) GLMP με text (αυτός είναι ο “επίσημος” βαθμός για τον φοιτητή)
+  const base = ensurePrefix(API_BASE);
+  const url = joinUrl(base, '/glmp/evaluate-and-save');
+  const payload = {
+    meta: { userId: user_id, answerId: q.id, category, modalities: ['text'] },
+    text: { ...textMeasures, raw: text },
+  };
+  console.log('[OPEN] GLMP payload →', payload, 'POST', url);
+  out = await fetchJSON(url, { method: 'POST', body: JSON.stringify(payload) });
+  console.log('[OPEN] GLMP response ←', out);
 
-      q.answer = text;
-      if (out && typeof out.id !== 'undefined') q.answerId = out.id;
+  q.answer = text;
+  if (out && typeof out.id !== 'undefined') q.answerId = out.id;
+
+  // 3) Πάρε τον GLMP βαθμό όπως ήδη κάνεις στο UI
+  const glmpScore =
+    typeof out?.score === 'number'
+      ? out.score
+      : pickScore(out); // χρησιμοποιεί το helper σου
+
+  // 4) EXTRA: στείλ' τον στο backend για να γραφτεί στο autorating (Rater UI)
+  try {
+    const syncBase = ensurePrefix(API_BASE);
+    const params = new URLSearchParams({
+      save: 'true',
+      attempt: String(ATTEMPT_NO || 1),
+    });
+    if (STUDY_TOKEN && STUDY_TOKEN.trim()) {
+      params.set('token', STUDY_TOKEN.trim());
     }
+
+    const syncUrl = joinUrl(syncBase, `/score-open-from-glmp?${params.toString()}`);
+
+    const headers = {};
+    if (STUDY_TOKEN && STUDY_TOKEN.trim()) {
+      headers['X-Study-Token'] = STUDY_TOKEN.trim();
+    }
+
+    await fetchJSON(syncUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        user_id: user_id,
+        category: category, // normalized (leadership, communication κλπ)
+        question_id: q.id,
+        text,
+        score: glmpScore ?? 0,
+      }),
+    });
+    console.log('[OPEN] synced GLMP score → autorating');
+  } catch (e) {
+    console.warn('[OPEN] failed to sync GLMP score to autorating', e);
+  }
+}
 
     // === MULTIPLE CHOICE TYPE ===
     else {
