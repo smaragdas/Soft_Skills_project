@@ -725,7 +725,8 @@ function pickScore(out){
 function pickAnswerId(out){ return out?.answer_id ?? out?.result?.answer_id ?? out?.id ?? '—'; }
 
 async function scoreOpen(API_BASE, category, question_id, text, user_id){
-  const base=ensurePrefix(API_BASE); const url=joinUrl(base,'/score-open?save=true&force_llm=true');
+  const base=ensurePrefix(API_BASE); 
+  const url=joinUrl(base,'/score-open?save=false&force_llm=true');
   return fetchJSON(url,{method:'POST',body:JSON.stringify({category,question_id,text,user_id})});
 }
 
@@ -832,7 +833,6 @@ if (q.type === 'open') {
   q.answer = text;
   if (out && typeof out.id !== 'undefined') q.answerId = out.id;
 }
-
     // === MULTIPLE CHOICE TYPE ===
     else {
       const radio = document.querySelector('input[name="mcOpt"]:checked');
