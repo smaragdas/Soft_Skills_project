@@ -946,12 +946,11 @@ function bandFromScore10(x){
 function makePdfUrl(categorySlug, level) {
   const cat = String(categorySlug || '').toLowerCase().replace(/\s+/g, '_');
   const lvl = String(level || '').toLowerCase();
-  const bucket = 'softskills-quiz-ihu';
-  return `https://${bucket}.s3-website.eu-central-1.amazonaws.com/materials/${cat}/${lvl}.pdf`;
+  // Τα PDF είναι στο public/pdf/<category>_<level>.pdf
+  return `/pdf/${cat}_${lvl}.pdf`;
 }
 
 // === COURSE PACK PAGES MAP (για attempt 1) ===
-// Συμπλήρωσέ το με βάση το υλικό του καθηγητή σου.
 const COURSE_PACK_PAGES = {
   Communication: {
     low: [
@@ -1537,7 +1536,6 @@ function ensureModal(){
   document.body.appendChild(bd);
   return bd;
 }
-
 
 
 

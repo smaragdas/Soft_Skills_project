@@ -946,15 +946,6 @@ def score_mc(
                 {"pid": participant_id, "att": attempt_no, "aid": answer_id},
             )
 
-        # --- HARD OVERRIDE: σωστό=10, λάθος=0 ---
-        if correct is True:
-            score_cal = 10.0
-        elif correct is False:
-            score_cal = 0.0
-        else:
-        # αν για κάποιο λόγο δεν ξέρουμε αν είναι σωστό/λάθος, κράτα ό,τι βγήκε από πριν
-            score_cal = float(score_cal)
-
             session.commit()
 
         return ScoreMCResponse(
