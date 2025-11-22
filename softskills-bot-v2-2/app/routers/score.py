@@ -61,46 +61,46 @@ def _norm_cat(cat: str) -> str:
     return c or "Leadership"
 
 
-def _calibrate_category_score(score_0_10: float, category: str) -> float:
-    try:
-        s = max(0.0, min(10.0, float(score_0_10)))
-    except Exception:
-        s = 0.0
-    gamma = _GAMMA_BY_CATEGORY.get(_norm_cat(category), 1.15)
-    return round(((s / 10.0) ** gamma) * 10.0, 2)
+# def _calibrate_category_score(score_0_10: float, category: str) -> float:
+#     try:
+#         s = max(0.0, min(10.0, float(score_0_10)))
+#     except Exception:
+#         s = 0.0
+#     gamma = _GAMMA_BY_CATEGORY.get(_norm_cat(category), 1.15)
+#     return round(((s / 10.0) ** gamma) * 10.0, 2)
 
 
-def _weighted_from_criteria(criteria: list, category: str) -> float | None:
-    """Compute weighted score 0..10 from criteria list like [{'name': 'Clarity','score': 7},...]"""
-    if not isinstance(criteria, list) or not criteria:
-        return None
-    weights = _WEIGHTS_BY_CATEGORY.get(_norm_cat(category), _WEIGHTS_BY_CATEGORY["Leadership"])
-    acc = 0.0
-    den = 0.0
-    for c in criteria:
-        try:
-            name = str(c.get("name", "")).strip().lower()
-            score = float(c.get("score", 0))
-        except Exception:
-            continue
-        key = None
-        if "clarity" in name:
-            key = "clarity"
-        elif "relevance" in name or "σχετικ" in name:
-            key = "relevance"
-        elif "empathy" in name or "ενσυνα" in name:
-            key = "empathy"
-        elif "action" in name or "πρακτικ" in name:
-            key = "actionability"
-        elif "specific" in name or "παράδειγ" in name or "τεκμηρ" in name:
-            key = "specificity"
-        if key and key in weights:
-            w = float(weights[key])
-            acc += max(0.0, min(10.0, score)) * w
-            den += w
-    if den <= 0:
-        return None
-    return acc / den
+# def _weighted_from_criteria(criteria: list, category: str) -> float | None:
+#     """Compute weighted score 0..10 from criteria list like [{'name': 'Clarity','score': 7},...]"""
+#     if not isinstance(criteria, list) or not criteria:
+#         return None
+#     weights = _WEIGHTS_BY_CATEGORY.get(_norm_cat(category), _WEIGHTS_BY_CATEGORY["Leadership"])
+#     acc = 0.0
+#     den = 0.0
+#     for c in criteria:
+#         try:
+#             name = str(c.get("name", "")).strip().lower()
+#             score = float(c.get("score", 0))
+#         except Exception:
+#             continue
+#         key = None
+#         if "clarity" in name:
+#             key = "clarity"
+#         elif "relevance" in name or "σχετικ" in name:
+#             key = "relevance"
+#         elif "empathy" in name or "ενσυνα" in name:
+#             key = "empathy"
+#         elif "action" in name or "πρακτικ" in name:
+#             key = "actionability"
+#         elif "specific" in name or "παράδειγ" in name or "τεκμηρ" in name:
+#             key = "specificity"
+#         if key and key in weights:
+#             w = float(weights[key])
+#             acc += max(0.0, min(10.0, score)) * w
+#             den += w
+#     if den <= 0:
+#         return None
+#     return acc / den
 
 
 # ---------------------------------------------------------------------------
@@ -539,218 +539,218 @@ def _upsert_answers_and_llm(
 
 
 # ============================== Endpoints ==============================
-@router.post("/score-open", response_model=ScoreOpenResponse)
-async def score_open(
-    request: ScoreOpenRequest,
-    session: Session = Depends(get_session),
-    save: bool = Query(True),
-    force_llm: bool = Query(False),
-    attempt: int | None = Query(None),
-    token: str | None = Query(None),
-    x_study_token: str | None = Header(None, alias="X-Study-Token"),
-) -> ScoreOpenResponse:
-    try:
-        # Heuristic baseline
-        h_score, h_criteria = _rubric_open_heuristic_0_10(request.text, request.category)
-        h_feedback = heuristic_open_feedback(request.text, request.category)
+# @router.post("/score-open", response_model=ScoreOpenResponse)
+# async def score_open(
+#     request: ScoreOpenRequest,
+#     session: Session = Depends(get_session),
+#     save: bool = Query(True),
+#     force_llm: bool = Query(False),
+#     attempt: int | None = Query(None),
+#     token: str | None = Query(None),
+#     x_study_token: str | None = Header(None, alias="X-Study-Token"),
+# ) -> ScoreOpenResponse:
+#     try:
+#         # Heuristic baseline
+#         h_score, h_criteria = _rubric_open_heuristic_0_10(request.text, request.category)
+#         h_feedback = heuristic_open_feedback(request.text, request.category)
 
-        # ✅ Resolve participant & attempt
-        participant_id, attempt_no = _get_participant_and_attempt(
-            request.user_id, token, x_study_token, attempt
-        )
+#         # ✅ Resolve participant & attempt
+#         participant_id, attempt_no = _get_participant_and_attempt(
+#             request.user_id, token, x_study_token, attempt
+#         )
 
-        # LLM (αν υπάρχει)
-        use_llm = _HAVE_LLM and getattr(settings, "OPENAI_API_KEY", None) and (
-            force_llm or not getattr(settings, "HEURISTIC_ONLY", False)
-        )
-        if use_llm:
-            try:
-                out = llm_coach_open(request.category, request.question_id, request.text) or {}
-            except Exception as e:
-                out = {
-                    "score": h_score,
-                    "keep": "Σφάλμα.",
-                    "change": str(e),
-                    "action": "Δοκίμασε ξανά.",
-                    "drill": "Έλεγξε API key/μοντέλο.",
-                    "model_name": getattr(settings, "OPENAI_MODEL", None) or "llm",
-                    "criteria": h_criteria,
-                }
+#         # LLM (αν υπάρχει)
+#         use_llm = _HAVE_LLM and getattr(settings, "OPENAI_API_KEY", None) and (
+#             force_llm or not getattr(settings, "HEURISTIC_ONLY", False)
+#         )
+#         if use_llm:
+#             try:
+#                 out = llm_coach_open(request.category, request.question_id, request.text) or {}
+#             except Exception as e:
+#                 out = {
+#                     "score": h_score,
+#                     "keep": "Σφάλμα.",
+#                     "change": str(e),
+#                     "action": "Δοκίμασε ξανά.",
+#                     "drill": "Έλεγξε API key/μοντέλο.",
+#                     "model_name": getattr(settings, "OPENAI_MODEL", None) or "llm",
+#                     "criteria": h_criteria,
+#                 }
 
-            llm_score = float(out.get("score", h_score))
-            llm_feedback = {
-                "keep": out.get("keep") or h_feedback.get("keep"),
-                "change": out.get("change") or h_feedback.get("change"),
-                "action": out.get("action") or h_feedback.get("action"),
-                "drill": out.get("drill") or h_feedback.get("drill"),
-            }
-            llm_criteria = out.get("criteria") or h_criteria
+#             llm_score = float(out.get("score", h_score))
+#             llm_feedback = {
+#                 "keep": out.get("keep") or h_feedback.get("keep"),
+#                 "change": out.get("change") or h_feedback.get("change"),
+#                 "action": out.get("action") or h_feedback.get("action"),
+#                 "drill": out.get("drill") or h_feedback.get("drill"),
+#             }
+#             llm_criteria = out.get("criteria") or h_criteria
 
-            blended = round(0.7 * llm_score + 0.3 * h_score)
-            weighted_or_blended = _weighted_from_criteria(llm_criteria, request.category) or blended
-            final_score = _calibrate_category_score(weighted_or_blended, request.category)
+#             blended = round(0.7 * llm_score + 0.3 * h_score)
+#             weighted_or_blended = _weighted_from_criteria(llm_criteria, request.category) or blended
+#             final_score = _calibrate_category_score(weighted_or_blended, request.category)
 
-            interaction_id = answer_id = None
-            if save:
-                created_at = _utc_now_str()
-                answer_id = str(uuid.uuid4())
+#             interaction_id = answer_id = None
+#             if save:
+#                 created_at = _utc_now_str()
+#                 answer_id = str(uuid.uuid4())
 
-                _dynamic_insert(
-                    session,
-                    "interaction",
-                    {
-                        "answer_id": answer_id,
-                        "category": request.category,
-                        "qtype": "open",
-                        "question_id": request.question_id,
-                        "text": request.text,
-                        "text_raw": request.text,
-                        "answer_text": request.text,
-                        "user_id": participant_id,
-                        "participant_id": participant_id,
-                        "attempt_no": attempt_no,
-                        "created_at": created_at,
-                    },
-                )
+#                 _dynamic_insert(
+#                     session,
+#                     "interaction",
+#                     {
+#                         "answer_id": answer_id,
+#                         "category": request.category,
+#                         "qtype": "open",
+#                         "question_id": request.question_id,
+#                         "text": request.text,
+#                         "text_raw": request.text,
+#                         "answer_text": request.text,
+#                         "user_id": participant_id,
+#                         "participant_id": participant_id,
+#                         "attempt_no": attempt_no,
+#                         "created_at": created_at,
+#                     },
+#                 )
 
-                _dynamic_insert(
-                    session,
-                    "autorating",
-                    {
-                        "answer_id": answer_id,
-                        "score": float(final_score),
-                        "confidence": 0.75,
-                        "model_name": out.get("model_name", getattr(settings, "OPENAI_MODEL", None) or "llm"),
-                        "feedback": {"kind": "coaching", **llm_feedback},
-                        "coaching": llm_feedback,
-                        "attempt_no": attempt_no,
-                        "created_at": created_at,
-                    },
-                )
+#                 _dynamic_insert(
+#                     session,
+#                     "autorating",
+#                     {
+#                         "answer_id": answer_id,
+#                         "score": float(final_score),
+#                         "confidence": 0.75,
+#                         "model_name": out.get("model_name", getattr(settings, "OPENAI_MODEL", None) or "llm"),
+#                         "feedback": {"kind": "coaching", **llm_feedback},
+#                         "coaching": llm_feedback,
+#                         "attempt_no": attempt_no,
+#                         "created_at": created_at,
+#                     },
+#                 )
 
-                _upsert_answers_and_llm(
-                    session,
-                    answer_id=answer_id,
-                    user_id=participant_id or "",
-                    question_id=request.question_id,
-                    category=request.category,
-                    qtype="open",
-                    prompt=None,
-                    answer=request.text,
-                    llm_score_0_1=(float(final_score) / 10.0),
-                )
-                session.execute(
-                    text(
-                        """
-                 UPDATE answers
-                    SET participant_id = :pid,
-                        attempt = :att
-                  WHERE answer_id = :aid
-                """
-                    ),
-                    {"pid": participant_id, "att": attempt_no, "aid": answer_id},
-                )
-                session.commit()
+#                 _upsert_answers_and_llm(
+#                     session,
+#                     answer_id=answer_id,
+#                     user_id=participant_id or "",
+#                     question_id=request.question_id,
+#                     category=request.category,
+#                     qtype="open",
+#                     prompt=None,
+#                     answer=request.text,
+#                     llm_score_0_1=(float(final_score) / 10.0),
+#                 )
+#                 session.execute(
+#                     text(
+#                         """
+#                  UPDATE answers
+#                     SET participant_id = :pid,
+#                         attempt = :att
+#                   WHERE answer_id = :aid
+#                 """
+#                     ),
+#                     {"pid": participant_id, "att": attempt_no, "aid": answer_id},
+#                 )
+#                 session.commit()
 
-                interaction_id = None
+#                 interaction_id = None
 
-            return ScoreOpenResponse(
-                text=request.text,
-                category=request.category,
-                question_id=request.question_id,
-                score=float(final_score),
-                feedback=llm_feedback,
-                model=out.get("model_name", "llm"),
-                answer_id=answer_id,
-                interaction_id=interaction_id,
-                criteria=llm_criteria,
-            )
+#             return ScoreOpenResponse(
+#                 text=request.text,
+#                 category=request.category,
+#                 question_id=request.question_id,
+#                 score=float(final_score),
+#                 feedback=llm_feedback,
+#                 model=out.get("model_name", "llm"),
+#                 answer_id=answer_id,
+#                 interaction_id=interaction_id,
+#                 criteria=llm_criteria,
+#             )
 
-        # Fallback: heuristic only
-        interaction_id = answer_id = None
-        if save:
-            created_at = _utc_now_str()
-            answer_id = str(uuid.uuid4())
+#         # Fallback: heuristic only
+#         interaction_id = answer_id = None
+#         if save:
+#             created_at = _utc_now_str()
+#             answer_id = str(uuid.uuid4())
 
-            _dynamic_insert(
-                session,
-                "interaction",
-                {
-                    "answer_id": answer_id,
-                    "category": request.category,
-                    "qtype": "open",
-                    "question_id": request.question_id,
-                    "text": request.text,
-                    "text_raw": request.text,
-                    "answer_text": request.text,
-                    "user_id": participant_id,
-                    "attempt_no": attempt_no,
-                    "created_at": created_at,
-                },
-            )
+#             _dynamic_insert(
+#                 session,
+#                 "interaction",
+#                 {
+#                     "answer_id": answer_id,
+#                     "category": request.category,
+#                     "qtype": "open",
+#                     "question_id": request.question_id,
+#                     "text": request.text,
+#                     "text_raw": request.text,
+#                     "answer_text": request.text,
+#                     "user_id": participant_id,
+#                     "attempt_no": attempt_no,
+#                     "created_at": created_at,
+#                 },
+#             )
 
-            h_final = _calibrate_category_score(
-                _weighted_from_criteria(h_criteria, request.category) or float(h_score),
-                request.category,
-            )
-            _dynamic_insert(
-                session,
-                "autorating",
-                {
-                    "answer_id": answer_id,
-                    "score": float(h_final),
-                    "confidence": 0.6,
-                    "model_name": "heuristic",
-                    "feedback": {"kind": "coaching", **h_feedback},
-                    "coaching": h_feedback,
-                    "attempt_no": attempt_no,
-                    "created_at": created_at,
-                },
-            )
+#             h_final = _calibrate_category_score(
+#                 _weighted_from_criteria(h_criteria, request.category) or float(h_score),
+#                 request.category,
+#             )
+#             _dynamic_insert(
+#                 session,
+#                 "autorating",
+#                 {
+#                     "answer_id": answer_id,
+#                     "score": float(h_final),
+#                     "confidence": 0.6,
+#                     "model_name": "heuristic",
+#                     "feedback": {"kind": "coaching", **h_feedback},
+#                     "coaching": h_feedback,
+#                     "attempt_no": attempt_no,
+#                     "created_at": created_at,
+#                 },
+#             )
 
-            _upsert_answers_and_llm(
-                session,
-                answer_id=answer_id,
-                user_id=participant_id or "",
-                question_id=request.question_id,
-                category=request.category,
-                qtype="open",
-                prompt=None,
-                answer=request.text,
-                llm_score_0_1=(float(h_final) / 10.0),
-            )
-            session.execute(
-                text(
-                    """
-                 UPDATE answers
-                    SET participant_id = :pid,
-                        attempt = :att
-                  WHERE answer_id = :aid
-            """
-                ),
-                {"pid": participant_id, "att": attempt_no, "aid": answer_id},
-            )
-            session.commit()
+#             _upsert_answers_and_llm(
+#                 session,
+#                 answer_id=answer_id,
+#                 user_id=participant_id or "",
+#                 question_id=request.question_id,
+#                 category=request.category,
+#                 qtype="open",
+#                 prompt=None,
+#                 answer=request.text,
+#                 llm_score_0_1=(float(h_final) / 10.0),
+#             )
+#             session.execute(
+#                 text(
+#                     """
+#                  UPDATE answers
+#                     SET participant_id = :pid,
+#                         attempt = :att
+#                   WHERE answer_id = :aid
+#             """
+#                 ),
+#                 {"pid": participant_id, "att": attempt_no, "aid": answer_id},
+#             )
+#             session.commit()
 
-        return ScoreOpenResponse(
-            text=request.text,
-            category=request.category,
-            question_id=request.question_id,
-            score=_calibrate_category_score(
-                _weighted_from_criteria(h_criteria, request.category) or float(h_score),
-                request.category,
-            ),
-            feedback=h_feedback,
-            model="heuristic",
-            answer_id=answer_id,
-            interaction_id=interaction_id,
-            criteria=h_criteria,
-        )
+#         return ScoreOpenResponse(
+#             text=request.text,
+#             category=request.category,
+#             question_id=request.question_id,
+#             score=_calibrate_category_score(
+#                 _weighted_from_criteria(h_criteria, request.category) or float(h_score),
+#                 request.category,
+#             ),
+#             feedback=h_feedback,
+#             model="heuristic",
+#             answer_id=answer_id,
+#             interaction_id=interaction_id,
+#             criteria=h_criteria,
+#         )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"score-open error: {e}\n{traceback.format_exc()}")
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"score-open error: {e}\n{traceback.format_exc()}")
 
 @router.post("/score-open-from-glmp", response_model=ScoreOpenResponse)
 def score_open_from_glmp(

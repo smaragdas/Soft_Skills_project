@@ -776,7 +776,6 @@ $('#btnScore')?.addEventListener('click', async (e) => {
   try {
     let out = null;
 
-    // === OPEN TYPE ===
  // === OPEN TYPE ===
 if (q.type === 'open') {
   const text = ($('#answer')?.value || '').trim();
