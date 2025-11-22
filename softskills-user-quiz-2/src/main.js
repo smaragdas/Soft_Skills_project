@@ -823,7 +823,7 @@ $('#btnScore')?.addEventListener('click', async (e) => {
       const acc = (correct_id != null) ? (String(selected_id) === correct_id ? 1 : 0) : 0;
 
       const base = ensurePrefix(API_BASE);
-      const url = joinUrl(base, '/score-mc?save=true&force_llm=false');
+      const url = joinUrl(base, '/score-mc?save=true&force_llm=true');
        const payload = {
          user_id: user_id,
          category: category,          // ή categoryLabel, δουλεύει και έτσι
