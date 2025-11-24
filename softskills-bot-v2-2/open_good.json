@@ -1,7 +1,0 @@
-﻿{
-  "category": "leadership",
-  "meta": { "category": "leadership", "answerId": "lead-open-1", "modalities": ["text"] },
-  "text": {
-    "raw": "Σε έργο με αυστηρή προθεσμία συντόνισα 4 άτομα με daily stand-ups, προτεραιοποιήσαμε blockers και παραδώσαμε 2 μέρες νωρίτερα με 0 critical bugs. Χρησιμοποίησα data από Jira για λήψη αποφάσεων."
-  }
-}

@@ -7,7 +7,7 @@ from sqlmodel import Session
 
 from app.core.db import get_session
 
-# ΣΗΜΑΝΤΙΚΟ: prefix = "/rater", γιατί το UI ζητά /api/softskills/rater/...
+# prefix = "/rater", γιατί το UI ζητά /api/softskills/rater/...
 router = APIRouter(prefix="/rater", tags=["rater"])
 
 @router.get("/items")

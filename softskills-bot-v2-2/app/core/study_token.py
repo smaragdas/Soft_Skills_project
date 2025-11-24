@@ -16,7 +16,7 @@ def make_token(participant_id: uuid.UUID) -> str:
     sig = hmac.new(_SECRET, pid, hashlib.sha256).digest()[:6]  # 6 bytes
     raw = pid + sig  # 22 bytes
     b32 = base64.b32encode(raw).decode().rstrip("=")  # A-Z2-7
-    # ομορφαίνεις με παύλες ανά 4
+    
     return "-".join(b32[i:i+4] for i in range(0, len(b32), 4))
 
 def parse_token(token: str) -> Optional[uuid.UUID]:

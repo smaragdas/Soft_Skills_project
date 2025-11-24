@@ -1,7 +1,0 @@
-﻿{
-  "category": "leadership",
-  "meta": { "category": "leadership", "answerId": "lead-open-1", "modalities": ["text"] },
-  "text": {
-    "raw": "Σε project με αυστηρή προθεσμία, σταθμίσαμε ρίσκο SLA και rollback. Επέλεξα phased release με feature flags/canary, ορίσαμε KPIs (σφάλματα/1k req, NPS) και εβδομαδιαίο review. Μηδέν κρίσιμα incidents και +12% ενεργοί χρήστες."
-  }
-}

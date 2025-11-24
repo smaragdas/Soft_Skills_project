@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-# Προσπάθησε να φορτώσεις .env αν υπάρχει (δεν απαιτείται για να τρέξει)
+# Προσπάθησε να φορτώσεις .env αν υπάρχει 
 try:
     from dotenv import load_dotenv  # type: ignore
     load_dotenv()

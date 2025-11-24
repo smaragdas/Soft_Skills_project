@@ -22,7 +22,7 @@ def get_engine():
         # Παίρνουμε URL από .env ή πέφτουμε σε local SQLite για dev
         db_url = getattr(settings, "DATABASE_URL", "sqlite:///./softskills.db")
 
-        # Για PostgreSQL (Neon): καλό είναι να έχει pool_pre_ping=True
+        # Για PostgreSQL (Neon), αποφεύγουμε broken connections
         connect_args = {}
         if db_url.startswith("sqlite"):
             connect_args["check_same_thread"] = False
