@@ -1,7 +1,0 @@
-{
-  "AllowOrigins": ["http://softskills-quiz-ihu.s3-website.eu-central-1.amazonaws.com"],
-  "AllowMethods": ["GET","POST","OPTIONS"],
-  "AllowHeaders": ["content-type","x-api-key"],
-  "ExposeHeaders": ["*"],
-  "MaxAge": 86400
-}

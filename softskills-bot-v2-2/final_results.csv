@@ -1,3 +1,0 @@
-answerId,userId,questionId,category,qtype,llm,teacher01,teacher02,human_avg,final,completed_at
-22a8a9af-a5a2-489d-b4d5-499810c718cf,c70a32e3-bb41-44f3-b003-317c90a15422,team_mc1,Teamwork,mc,0.774,0.730,0.810,0.770,0.772,2025-10-15 07:43:35.110456+00:00
-11111111-1111-4111-8111-111111111111,userA,Q1,communication,open,0.620,0.700,0.800,0.750,0.685,2025-10-14 08:28:00.086597+00:00

@@ -1,6 +1,0 @@
-# Run locally
-# 1) python -m venv .venv
-# 2) .venv\Scripts\Activate.ps1      (Windows PowerShell)
-# 3) pip install -r requirements.txt
-# 4) copy .env.example .env   (και προσαρμόζεις API_KEY αν θέλεις)
-# 5) uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
