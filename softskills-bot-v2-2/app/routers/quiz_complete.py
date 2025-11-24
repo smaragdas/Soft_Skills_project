@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends
 from sqlmodel import Session
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError
 
 from app.core.db import get_session
 
@@ -36,25 +36,42 @@ def level_from_score(s: float) -> str:
 
 
 def _head_exists(s3, bucket: str, key: str) -> bool:
-    """Επιστρέφει True αν υπάρχει το αντικείμενο στο S3 (HEAD)."""
+    if not s3 or not bucket or not key:
+        return False
     try:
         s3.head_object(Bucket=bucket, Key=key)
         return True
-    except ClientError as e:
-        # 404/403 => δεν υπάρχει ή δεν επιτρέπεται. Για τον σκοπό μας, ‘δεν υπάρχει’.
+    except NoCredentialsError:
+        # 🚫 Δεν έχουμε AWS credentials → θεωρούμε ότι δεν υπάρχει
         return False
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code")
+        if code in ("404", "NoSuchKey", "NotFound"):
+            return False
+        # για οτιδήποτε άλλο απλά log και False
+        print(f"S3 head_object error: {e}")
+        return False
+    
+
+def _get_s3_client():
+    try:
+        # Δημιουργεί S3 client μόνο αν υπάρχουν credentials
+        session = boto3.session.Session()
+        creds = session.get_credentials()
+        if creds is None:
+            return None
+        return session.client("s3")
+    except Exception:
+        return None
 
 
 def _pick_material_key(cat: str, level: str, phase: str, attempt: int) -> str:
-    """
-    Επιλογή υπαρκτού key με σειρά εξειδίκευσης:
-      1) materials/{cat}/{phase}/attempt{attempt}/{level}.pdf
-      2) materials/{cat}/{phase}/{level}.pdf
-      3) materials/{cat}/{level}.pdf
-    """
-    s3 = boto3.client("s3")
-    phase_norm = "post" if str(phase).strip().upper() == "POST" else "pre"
+    s3 = _get_s3_client()
+    if not s3:
+        # 🚫 Δεν υπάρχει S3 client (άρα δεν υπάρχουν credentials)
+        return None
 
+    phase_norm = "post" if str(phase).strip().upper() == "POST" else "pre"
     candidates = [
         f"materials/{cat}/{phase_norm}/attempt{attempt}/{level}.pdf",
         f"materials/{cat}/{phase_norm}/{level}.pdf",
@@ -63,8 +80,7 @@ def _pick_material_key(cat: str, level: str, phase: str, attempt: int) -> str:
     for key in candidates:
         if _head_exists(s3, MATERIALS_BUCKET, key):
             return key
-    # Αν δεν βρέθηκε τίποτα, επέστρεψε τον πιο generic δρόμο (θα 404, αλλά τουλάχιστον είναι σταθερός)
-    return candidates[-1]
+    return None
 
 
 def presign_url(bucket: str, key: str, expires_sec: int = 24 * 3600) -> str:
@@ -149,8 +165,17 @@ def quiz_complete(payload: Dict[str, Any], session: Session = Depends(get_sessio
             ("problem_solving", lvl_prob),
         ]:
             key = _pick_material_key(cat, lvl, phase_norm, attempt_int)
-            url = presign_url(MATERIALS_BUCKET, key)
-            materials.append({"category": cat, "level": lvl, "url": url})
+            url = None
+
+            if key:
+                try:
+                    url = presign_url(MATERIALS_BUCKET, key)
+                except NoCredentialsError:
+                    # 🚫 Δεν έχουμε AWS credentials → δεν δίνουμε URL
+                    url = None
+
+            if url:
+                materials.append({"category": cat, "level": lvl, "url": url})
 
     print(
         f"[quiz_complete] user={user_id} phase={phase_norm} attempt={attempt_int} "
