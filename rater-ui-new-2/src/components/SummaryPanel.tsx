@@ -4,12 +4,11 @@ import { fetchSummary } from "../api";
 import type { SummaryRow } from "../types";
 
 type Props = {
-  // προαιρετικά μπορείς να δίνεις αρχικό rater απ’ έξω
+  // o rater έρχεται απ' έξω (App) και δεν τον αλλάζουμε τοπικά
   initialRater?: "teacher01" | "teacher02";
 };
 
 const SummaryPanel: React.FC<Props> = ({ initialRater = "teacher01" }) => {
-  const [rater, setRater] = useState<"teacher01" | "teacher02">(initialRater);
   const [rows, setRows] = useState<SummaryRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -18,7 +17,7 @@ const SummaryPanel: React.FC<Props> = ({ initialRater = "teacher01" }) => {
     setLoading(true);
     setErr(null);
     try {
-      const data = await fetchSummary({ raterId: rater });
+      const data = await fetchSummary({ raterId: initialRater });
       setRows(data);
     } catch (e: any) {
       setErr(e?.message || "Failed to load summary");
@@ -31,7 +30,7 @@ const SummaryPanel: React.FC<Props> = ({ initialRater = "teacher01" }) => {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rater]);
+  }, [initialRater]);
 
   return (
     <div
@@ -55,16 +54,9 @@ const SummaryPanel: React.FC<Props> = ({ initialRater = "teacher01" }) => {
       >
         <strong style={{ color: "#fff" }}>Summary</strong>
 
-        <label>
-          Rater:&nbsp;
-          <select
-            value={rater}
-            onChange={(e) => setRater(e.target.value as "teacher01" | "teacher02")}
-          >
-            <option value="teacher01">teacher01</option>
-            <option value="teacher02">teacher02</option>
-          </select>
-        </label>
+        <span style={{ fontSize: 13, color: "#9fb0c9" }}>
+          Rater: <strong>{initialRater}</strong>
+        </span>
 
         <button onClick={load} disabled={loading}>
           {loading ? "Loading…" : "Reload"}

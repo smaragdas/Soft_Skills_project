@@ -544,7 +544,7 @@ QUESTIONS_POST: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
         {"id": "comm_post_open7","text": "Πώς προσαρμόζεις τον τρόπο που επικοινωνείς όταν γράφεις, σε σύγκριση με όταν μιλάς απευθείας με τα μέλη της ομάδας;"},
         {"id": "comm_post_open8","text": "Τι κάνεις όταν παρατηρείς ότι κάποιο άτομο στην ομάδα φαίνεται αφηρημένο ή αποστασιοποιημένο κατά τη διάρκεια μιας συζήτησης;"},
         {"id": "comm_post_open9","text": "Μοίρασε ένα παράδειγμα όπου η περίληψη όσων είπε κάποιος βοήθησε να αποφευχθεί μια πιθανή παρεξήγηση."},
-        {"id": "comm_post_open10","text": "Ποια σημάδια ή ενδείξεις αναζητάς για να επιβεβαιώσεις ότι το μήνυμά σου έχει γίνει πλήρως κατανοητό;"}
+        {"id": "comm_post_open10","text": " "}
     ],
         "mc": [
     {
@@ -1167,11 +1167,29 @@ def _shuffle_choices(q: Dict[str, Any]) -> Tuple[List[str], int]:
     return choices, new_correct
 
 def _get_phase_questions(category: str, phase: str) -> Dict[str, List[Dict[str, Any]]]:
-    print(f"[DEBUG _get_phase_questions] phase={phase}")
+    """
+    Επιστρέφει ΕΝΙΑΙΑ τράπεζα ερωτήσεων για την κατηγορία,
+    ανεξάρτητα αν το phase είναι PRE ή POST.
+
+    Δηλαδή:
+      - open = PRE_open + POST_open
+      - mc   = PRE_mc + POST_mc
+    """
     phase_norm = str(phase or "PRE").strip().upper()
-    if phase_norm == "POST":
-        return QUESTIONS_POST.get(category, {})
-    return QUESTIONS_PRE.get(category, {})
+    print(f"[DEBUG _get_phase_questions] category={category}, phase={phase_norm}")
+
+    pre_cat  = QUESTIONS_PRE.get(category, {}) or {}
+    post_cat = QUESTIONS_POST.get(category, {}) or {}
+
+    open_pre  = pre_cat.get("open") or []
+    open_post = post_cat.get("open") or []
+    mc_pre    = pre_cat.get("mc") or []
+    mc_post   = post_cat.get("mc") or []
+
+    return {
+        "open": open_pre + open_post,
+        "mc": mc_pre + mc_post,
+    }
 
 
 def get_questions(category: str, qtype: str, n: int, phase: str = "PRE") -> List[Dict[str, Any]]:
@@ -1276,7 +1294,25 @@ def build_bundle(
         "attempt": attempt,
     }
 
-QUESTIONS = QUESTIONS_PRE
-QUESTION_BANK = QUESTIONS_PRE
+# Φτιάχνουμε merged bank για όλο το σύστημα (PRE + POST)
+MERGED_QUESTIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+
+all_cats = set(list(QUESTIONS_PRE.keys()) + list(QUESTIONS_POST.keys()))
+for cat in all_cats:
+    pre_cat  = QUESTIONS_PRE.get(cat, {}) or {}
+    post_cat = QUESTIONS_POST.get(cat, {}) or {}
+
+    open_pre  = pre_cat.get("open") or []
+    open_post = post_cat.get("open") or []
+    mc_pre    = pre_cat.get("mc") or []
+    mc_post   = post_cat.get("mc") or []
+
+    MERGED_QUESTIONS[cat] = {
+        "open": open_pre + open_post,
+        "mc": mc_pre + mc_post,
+    }
+
+QUESTIONS = MERGED_QUESTIONS
+QUESTION_BANK = MERGED_QUESTIONS
 get_question_categories = get_categories
 

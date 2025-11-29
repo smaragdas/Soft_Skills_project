@@ -34,7 +34,7 @@ const AnswerCard: React.FC<Props> = ({
   const t110  = useMemo(() => to10(item.teacher01 ?? null), [item.teacher01]);
   const t210  = useMemo(() => to10(item.teacher02 ?? null), [item.teacher02]);
 
-  // Delta για τον τρέχοντα rater
+  // Delta για τον τρέχοντα rater (χρησιμοποιείται ΜΟΝΟ για το δικό του score, δεν εμφανίζουμε του άλλου)
   const rater10 = raterId === "teacher01" ? t110 : t210;
   const delta = llm10 != null && rater10 != null ? +(rater10 - llm10).toFixed(1) : null;
 
@@ -65,6 +65,7 @@ const AnswerCard: React.FC<Props> = ({
         </div>
 
         <div className="answer-card__badges">
+          {/* 🔹 ΜΟΝΟ LLM score φαίνεται σταθερά */}
           <span
             className="badge"
             style={{ background: bandColor(llm10), color: "#0b1220" }}
@@ -72,22 +73,14 @@ const AnswerCard: React.FC<Props> = ({
           >
             LLM: {llm10 ?? "—"}/10
           </span>
-          <span
-            className="badge"
-            style={{ background: bandColor(t110), color: "#0b1220" }}
-            title="Teacher 01"
-          >
-            T1: {t110 ?? "—"}/10
-          </span>
-          <span
-            className="badge"
-            style={{ background: bandColor(t210), color: "#0b1220" }}
-            title="Teacher 02"
-          >
-            T2: {t210 ?? "—"}/10
-          </span>
 
-          {/* Δ = (Teacher_current − LLM) */}
+          {/* ❌ Δεν δείχνουμε πια Teacher 1 / Teacher 2 badges για να μην επηρεάζονται */}
+          {/* 
+          <span className="badge">T1: ...</span>
+          <span className="badge">T2: ...</span>
+          */}
+
+          {/* Προαιρετικά: Δ = (current teacher − LLM), ΔΕΝ αποκαλύπτει τον άλλο teacher */}
           {delta != null && (
             <span
               className="badge"
