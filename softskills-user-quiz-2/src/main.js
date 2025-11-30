@@ -80,14 +80,6 @@ const ATTEMPT_NO = (() => {
   }
   const phase = (ATTEMPT_NO === 1 ? 'PRE' : 'POST');
   localStorage.setItem('QUIZ_PHASE', phase);
-
-  // 🔥 wipe cached progress for this user/category both phases
-  try {
-    const user = localStorage.getItem(LS.USER_ID) || '';
-    const cat  = localStorage.getItem(LS.CATEGORY) || 'Leadership';
-    localStorage.removeItem(LS.PROGRESS(user, cat, 'PRE'));
-    localStorage.removeItem(LS.PROGRESS(user, cat, 'POST'));
-  } catch {}
 })();
 
 // Αρχικοποίηση του badge PRE / POST στον τίτλο
@@ -341,6 +333,83 @@ function saveProgress(){
   const key = LS.PROGRESS(user, cat, phase);
   try { localStorage.setItem(key, JSON.stringify({CUR,BUNDLE,RESULTS,ts:Date.now()})); } catch {}
 }
+// ------- RESTORE PROGRESS AFTER REFRESH -------
+
+function restoreProgressFromLocalStorage() {
+  const user = getUserId();
+  const catFromSelect = (categoryEl?.value || '').trim();
+  const storedCat = localStorage.getItem(LS.CATEGORY);
+  const cat = (catFromSelect || storedCat || 'Leadership').trim();
+
+  const phase = (localStorage.getItem('QUIZ_PHASE') || 'PRE').trim();
+  const key = LS.PROGRESS(user, cat, phase);
+
+  let saved = null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    saved = JSON.parse(raw);
+  } catch {
+    return false;
+  }
+
+  // basic validation
+  if (!saved || !Array.isArray(saved.BUNDLE) || typeof saved.CUR !== 'number') {
+    return false;
+  }
+
+  // Φόρτωση state
+  BUNDLE  = saved.BUNDLE;
+  CUR     = Math.min(Math.max(saved.CUR, 0), BUNDLE.length - 1);
+  RESULTS = saved.RESULTS || [];
+  START_CATEGORY = cat;
+
+  // Αν έχεις κρατήσει flags στο saveProgress, μπορείς να τα ξαναφορτώσεις εδώ
+  BRANCHED = !!saved.BRANCHED;
+  LEVEL    = saved.LEVEL || null;
+
+  // Αν έχει τελειώσει ήδη το quiz, πήγαινε κατευθείαν στο "τελικό" UI
+  if (saved.finished) {
+    // Απόκρυψη intro / instructions
+    document.getElementById('introPanel')?.classList.add('hidden');
+    document.getElementById('instructionsPanel')?.classList.add('hidden');
+    document.getElementById('quizBox')?.classList.remove('hidden');
+
+    // Αν έχεις αποθηκεύσει summary + quizComplete, δείξ’ τα από εδώ
+    if (saved.summary && saved.quizComplete) {
+      try {
+        showFinalSummary(saved.summary, saved.quizComplete);
+      } catch (e) {
+        // fallback αν δεν υπάρχει ακόμα αυτή η συνάρτηση
+        console.warn('Could not restore final summary:', e);
+      }
+    }
+
+    return true;
+  }
+
+  // Αν ΔΕΝ έχει τελειώσει το quiz → συνέχισε από εκεί που ήταν
+
+  // Απόκρυψη intro / instructions, εμφάνιση quiz
+  document.getElementById('introPanel')?.classList.add('hidden');
+  document.getElementById('instructionsPanel')?.classList.add('hidden');
+  document.getElementById('quizBox')?.classList.remove('hidden');
+
+  // Αν έχεις status bar, ενημέρωσέ το
+  if (typeof setBar === 'function') {
+    const progressPercent = (CUR / Math.max(BUNDLE.length - 1, 1)) * 100;
+    setBar(progressPercent);
+  }
+
+  // Κάνε render την τρέχουσα ερώτηση
+  if (typeof renderCurrent === 'function') {
+    renderCurrent();
+  } else {
+    console.warn('renderCurrent() is not defined – update restoreProgressFromLocalStorage');
+  }
+
+  return true;
+}
 function clearProgress(){
   const user = getUserId();
   const cat  = (categoryEl?.value||'Leadership').trim();
@@ -559,14 +628,6 @@ async function startNewQuiz(){
   }
 }
 
-$('#btnStart')?.addEventListener('click', async (e)=>{
-  e.preventDefault(); e.stopPropagation();
-  await startNewQuiz();
-});
-$('#startBtn')?.addEventListener('click', async (e)=>{
-  e.preventDefault(); e.stopPropagation();
-  await startNewQuiz();
-});
 
 categoryEl?.addEventListener('change', async (e) => {
   const prev = localStorage.getItem(LS.CATEGORY) || 'Leadership';
@@ -1761,3 +1822,13 @@ document.addEventListener('click', (e)=>{
   const st = document.querySelector('#status');
   if (st) { st.dataset.type = 'ok'; st.textContent = 'Έτοιμο. Διάλεξε Κατηγορία και πάτα Έναρξη.'; }
 })();
+
+// ------- AUTO-RESTORE ON PAGE LOAD -------
+
+window.addEventListener('DOMContentLoaded', () => {
+  const restored = restoreProgressFromLocalStorage();
+  if (!restored) {
+    // Δεν βρέθηκε αποθηκευμένη πρόοδος → άσε το UI όπως είναι (intro & start)
+    // Αν θες να κάνεις κάτι έξτρα στην πρώτη φόρτωση, βάλε το εδώ.
+  }
+});
