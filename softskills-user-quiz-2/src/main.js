@@ -336,57 +336,84 @@ function saveProgress(){
 // ------- RESTORE PROGRESS AFTER REFRESH -------
 
 function restoreProgressFromLocalStorage() {
-  const user = getUserId();
-  const catFromSelect = (categoryEl?.value || '').trim();
-  const storedCat = localStorage.getItem(LS.CATEGORY);
-  const cat = (catFromSelect || storedCat || 'Leadership').trim();
+  // 1) Βρες την πιο πρόσφατη αποθηκευμένη πρόοδο από ΟΠΟΙΟΔΗΠΟΤΕ user
+  let bestKey = null;
+  let bestPayload = null;
 
-  const phase = (localStorage.getItem('QUIZ_PHASE') || 'PRE').trim();
-  const key = LS.PROGRESS(user, cat, phase);
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith('QUIZ_PROGRESS:')) continue;
 
-  let saved = null;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return false;
-    saved = JSON.parse(raw);
-  } catch {
-    return false;
-  }
+    try {
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== 'object' || !Array.isArray(data.BUNDLE)) continue;
 
-  // basic validation
-  if (!saved || !Array.isArray(saved.BUNDLE) || typeof saved.CUR !== 'number') {
-    return false;
-  }
-
-  // Φόρτωση state
-  BUNDLE  = saved.BUNDLE;
-  CUR     = Math.min(Math.max(saved.CUR, 0), BUNDLE.length - 1);
-  RESULTS = saved.RESULTS || [];
-  START_CATEGORY = cat;
-
-  // Αν έχεις κρατήσει flags στο saveProgress, μπορείς να τα ξαναφορτώσεις εδώ
-  BRANCHED = !!saved.BRANCHED;
-  LEVEL    = saved.LEVEL || null;
-
-  // Αν έχει τελειώσει ήδη το quiz, πήγαινε κατευθείαν στο "τελικό" UI
-  if (saved.finished) {
-    // Απόκρυψη intro / instructions
-    document.getElementById('introPanel')?.classList.add('hidden');
-    document.getElementById('instructionsPanel')?.classList.add('hidden');
-    document.getElementById('quizBox')?.classList.remove('hidden');
-
-    // Αν έχεις αποθηκεύσει summary + quizComplete, δείξ’ τα από εδώ
-    if (saved.summary && saved.quizComplete) {
-      try {
-        showFinalSummary(saved.summary, saved.quizComplete);
-      } catch (e) {
-        // fallback αν δεν υπάρχει ακόμα αυτή η συνάρτηση
-        console.warn('Could not restore final summary:', e);
+      if (!bestPayload || (data.ts && data.ts > (bestPayload.ts || 0))) {
+        bestKey = k;
+        bestPayload = data;
       }
+    } catch {
+      // αγνόησε λάθη parsing
     }
-
-    return true;
   }
+
+  // Δεν βρέθηκε καμία πρόοδος --> ξεκίνα κανονικά από intro
+  if (!bestKey || !bestPayload) return false;
+
+  // 2) Διάβασε user, category, phase από το key
+  // μορφή: QUIZ_PROGRESS:<user>:<category>:<PHASE>
+  const parts = bestKey.split(':');
+  const user  = (parts[1] || '').trim();
+  const cat   = (parts[2] || 'Leadership').trim();
+  const phase = (parts[3] || 'PRE').trim();
+
+  // 3) Φόρτωση state από το payload
+  BUNDLE  = bestPayload.BUNDLE || [];
+  CUR     = Math.min(Math.max(bestPayload.CUR || 0, 0), BUNDLE.length - 1);
+  RESULTS = bestPayload.RESULTS || [];
+  START_CATEGORY = cat;
+  BRANCHED = !!bestPayload.BRANCHED;
+  LEVEL    = bestPayload.LEVEL || null;
+  FINISHED = !!bestPayload.FINISHED;
+
+  // 4) Συγχρονισμός localStorage & UI με αυτά τα δεδομένα
+  if (user) {
+    localStorage.setItem(LS.USER_ID, user);
+    localStorage.setItem('QUIZ_USER', user);
+    if (userIdEl) {
+      userIdEl.value = user;
+      userIdEl.readOnly = true;
+      userIdEl.setAttribute('aria-readonly', 'true');
+    }
+  }
+
+  localStorage.setItem(LS.CATEGORY, cat);
+  localStorage.setItem('QUIZ_PHASE', phase);
+  if (categoryEl) categoryEl.value = cat;
+
+  // 5) Απόκρυψη intro / instructions, εμφάνιση quiz
+  document.getElementById('introPanel')?.classList.add('hidden');
+  document.getElementById('instructionsPanel')?.classList.add('hidden');
+  document.getElementById('quizBox')?.classList.remove('hidden');
+
+  // 6) Ενημέρωση progress bar
+  if (typeof setBar === 'function') {
+    const expectedTotal = BRANCHED ? (BUNDLE.length || 16) : 16;
+    const progressPercent = ((CUR + 1) / Math.max(expectedTotal, 1)) * 100;
+    setBar(progressPercent);
+  }
+
+  // 7) Render της τρέχουσας ερώτησης
+  if (typeof renderCurrent === 'function') {
+    renderCurrent();
+  } else {
+    console.warn('renderCurrent() is not defined – update restoreProgressFromLocalStorage');
+  }
+
+  return true;
+}
 
   // Αν ΔΕΝ έχει τελειώσει το quiz → συνέχισε από εκεί που ήταν
 
