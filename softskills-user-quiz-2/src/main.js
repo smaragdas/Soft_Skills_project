@@ -331,18 +331,36 @@ function saveProgress(){
   const cat  = (categoryEl?.value||'Leadership').trim();
   const phase = (localStorage.getItem('QUIZ_PHASE') || 'PRE').trim();
   const key = LS.PROGRESS(user, cat, phase);
-  try { localStorage.setItem(key, JSON.stringify({CUR,BUNDLE,RESULTS,ts:Date.now()})); } catch {}
+
+  const payload = {
+    CUR,
+    BUNDLE,
+    RESULTS,
+    ts: Date.now(),
+    BRANCHED,
+    LEVEL,
+    FINISHED,
+  };
+
+  try {
+    localStorage.setItem(key, JSON.stringify(payload));
+    // console.log('Saved progress →', key, payload); // (προαιρετικά για debug)
+  } catch {}
 }
 // ------- RESTORE PROGRESS AFTER REFRESH -------
 
 function restoreProgressFromLocalStorage() {
-  // 1) Βρες την πιο πρόσφατη αποθηκευμένη πρόοδο από ΟΠΟΙΟΔΗΠΟΤΕ user
+  const user = getUserId();   // θα είναι stu_<token> αν υπάρχει token
+  if (!user) return false;
+
   let bestKey = null;
   let bestPayload = null;
 
+  // 1) Βρες την πιο πρόσφατη αποθηκευμένη πρόοδο ΜΟΝΟ για ΑΥΤΟΝ τον user
+  const prefix = `QUIZ_PROGRESS:${user}:`;
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (!k || !k.startsWith('QUIZ_PROGRESS:')) continue;
+    if (!k || !k.startsWith(prefix)) continue;
 
     try {
       const raw = localStorage.getItem(k);
@@ -355,17 +373,16 @@ function restoreProgressFromLocalStorage() {
         bestPayload = data;
       }
     } catch {
-      // αγνόησε λάθη parsing
+      // αγνόησε προβληματικά entries
     }
   }
 
-  // Δεν βρέθηκε καμία πρόοδος --> ξεκίνα κανονικά από intro
+  // Δεν βρέθηκε τίποτα για ΑΥΤΟΝ τον user → άσε το UI στο intro
   if (!bestKey || !bestPayload) return false;
 
-  // 2) Διάβασε user, category, phase από το key
-  // μορφή: QUIZ_PROGRESS:<user>:<category>:<PHASE>
+  // 2) Διάβασε category & phase από το key
+  // format: QUIZ_PROGRESS:<user>:<category>:<PHASE>
   const parts = bestKey.split(':');
-  const user  = (parts[1] || '').trim();
   const cat   = (parts[2] || 'Leadership').trim();
   const phase = (parts[3] || 'PRE').trim();
 
@@ -374,38 +391,35 @@ function restoreProgressFromLocalStorage() {
   CUR     = Math.min(Math.max(bestPayload.CUR || 0, 0), BUNDLE.length - 1);
   RESULTS = bestPayload.RESULTS || [];
   START_CATEGORY = cat;
+
   BRANCHED = !!bestPayload.BRANCHED;
   LEVEL    = bestPayload.LEVEL || null;
   FINISHED = !!bestPayload.FINISHED;
 
-  // 4) Συγχρονισμός localStorage & UI με αυτά τα δεδομένα
-  if (user) {
-    localStorage.setItem(LS.USER_ID, user);
-    localStorage.setItem('QUIZ_USER', user);
-    if (userIdEl) {
-      userIdEl.value = user;
-      userIdEl.readOnly = true;
-      userIdEl.setAttribute('aria-readonly', 'true');
-    }
-  }
-
+  // 4) Συγχρονισμός localStorage & UI (ώστε να συμφωνούν)
   localStorage.setItem(LS.CATEGORY, cat);
   localStorage.setItem('QUIZ_PHASE', phase);
   if (categoryEl) categoryEl.value = cat;
+
+  if (userIdEl) {
+    userIdEl.value = user;
+    userIdEl.readOnly = true;
+    userIdEl.setAttribute('aria-readonly', 'true');
+  }
 
   // 5) Απόκρυψη intro / instructions, εμφάνιση quiz
   document.getElementById('introPanel')?.classList.add('hidden');
   document.getElementById('instructionsPanel')?.classList.add('hidden');
   document.getElementById('quizBox')?.classList.remove('hidden');
 
-  // 6) Ενημέρωση progress bar
+  // 6) Progress bar
   if (typeof setBar === 'function') {
     const expectedTotal = BRANCHED ? (BUNDLE.length || 16) : 16;
     const progressPercent = ((CUR + 1) / Math.max(expectedTotal, 1)) * 100;
     setBar(progressPercent);
   }
 
-  // 7) Render της τρέχουσας ερώτησης
+  // 7) Κάνε render την τρέχουσα ερώτηση
   if (typeof renderCurrent === 'function') {
     renderCurrent();
   } else {
@@ -415,28 +429,6 @@ function restoreProgressFromLocalStorage() {
   return true;
 }
 
-  // Αν ΔΕΝ έχει τελειώσει το quiz → συνέχισε από εκεί που ήταν
-
-  // Απόκρυψη intro / instructions, εμφάνιση quiz
-  document.getElementById('introPanel')?.classList.add('hidden');
-  document.getElementById('instructionsPanel')?.classList.add('hidden');
-  document.getElementById('quizBox')?.classList.remove('hidden');
-
-  // Αν έχεις status bar, ενημέρωσέ το
-  if (typeof setBar === 'function') {
-    const progressPercent = (CUR / Math.max(BUNDLE.length - 1, 1)) * 100;
-    setBar(progressPercent);
-  }
-
-  // Κάνε render την τρέχουσα ερώτηση
-  if (typeof renderCurrent === 'function') {
-    renderCurrent();
-  } else {
-    console.warn('renderCurrent() is not defined – update restoreProgressFromLocalStorage');
-  }
-
-  return true;
-}
 function clearProgress(){
   const user = getUserId();
   const cat  = (categoryEl?.value||'Leadership').trim();
