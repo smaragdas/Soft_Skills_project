@@ -3,7 +3,7 @@
 import './style.css';
 import { ensureSignedStudyToken } from './services/studyToken';
 
-ensureSignedStudyToken().catch(()=>{});
+ensureSignedStudyToken().catch(()=>{alert("Invalid or expired token.");});
 
 /* ================== helpers ================== */
 const $ = (sel) => document.querySelector(sel);
@@ -32,29 +32,10 @@ function centerSettingsPanel(){
   panel.style.transform = `translate(${dx}px, ${dy}px) scale(0.98)`;
 }
 
-function dockSettingsPanel(){
-  const panel = document.getElementById('settingsPanel') || document.querySelector('.layout > aside.panel');
-  if (!panel) return Promise.resolve();
-  return new Promise((resolve) => {
-    const done = () => { panel.removeEventListener('transitionend', done); resolve(); };
-    panel.addEventListener('transitionend', done);
-    requestAnimationFrame(()=> { panel.style.transform = 'translate(0,0) scale(1)'; });
-    setTimeout(done, 700);
-  });
-}
-
 // --- Study token & attempt helpers ---
 function getQueryParam(name) {
   const m = new RegExp(`[?&]${name}=([^&#]*)`).exec(window.location.search);
   return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : null;
-}
-
-function getCatalogBase() {
-  const b =
-    (import.meta.env?.VITE_CATALOG_BASE ||
-     import.meta.env?.VITE_API_BASE ||
-     '').trim();
-  return ensurePrefix(b.replace(/\/+$/, ''));
 }
 
 const STUDY_TOKEN = (() => {
@@ -561,14 +542,12 @@ function autoAdvanceOnTimeout() {
 }
 /* ================== Data loaders ================== */
 async function loadFour(category){
-  // ⬇️ χρησιμοποίησε το API base γι' αυτό το endpoint
   const base = ensurePrefix(getAPIBase().trim());
 
   // Phase & Attempt (από το state του UI / URL)
   const phase   = (localStorage.getItem('QUIZ_PHASE') || 'PRE').trim(); // "PRE" | "POST"
   const attempt = (typeof ATTEMPT_NO !== 'undefined' ? ATTEMPT_NO : 1); // 1 | 2
 
-  // Φτιάξε URL με phase/attempt ώστε το backend να δώσει άλλο bank για POST
  const url = joinUrl(
   base,
   `/questions/bundle` +

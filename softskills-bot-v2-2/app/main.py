@@ -7,7 +7,6 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-
 # --- Settings / DB ---
 from sqlalchemy import text
 from sqlmodel import Session
@@ -43,6 +42,7 @@ app = FastAPI(
     version=getattr(settings, "VERSION", "1.0.0"),
     root_path=ROOT_PATH,
 )
+
 
 # -----------------------------------------------------------------------------
 # CORS

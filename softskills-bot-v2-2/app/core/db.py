@@ -13,10 +13,6 @@ _engine = None
 
 
 def get_engine():
-    """
-    Δημιουργεί (ή επιστρέφει) singleton engine.
-    Σε AWS Lambda, το engine παραμένει cached μεταξύ κλήσεων (Cold/Warm start).
-    """
     global _engine
     if _engine is None:
         # Παίρνουμε URL από .env ή πέφτουμε σε local SQLite για dev
