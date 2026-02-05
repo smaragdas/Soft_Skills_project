@@ -74,7 +74,7 @@ def _weighted_from_criteria(criteria: list, category: str) -> float | None:
     """Compute weighted score 0..10 from criteria list like [{'name': 'Clarity','score': 7},...]"""
     if not isinstance(criteria, list) or not criteria:
         return None
-    weights = _WEIGHTS_BY_CATEGORY.get(_norm_cat(category), _WEIGHTS_BY_CATEGORY["Leadership"])
+    weights = _WEIGHTS_BY_CATEGORY.get(_norm_cat(category), _WEIGHTS_BY_CATEGORY.get(category, {}))
     acc = 0.0
     den = 0.0
     for c in criteria:
